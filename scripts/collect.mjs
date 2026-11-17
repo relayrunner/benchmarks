@@ -1,34 +1,51 @@
 // Reads this run's benchmark jobs from the GitHub API and writes one results file for the dispatch.
-// Every time comes from GitHub's own job and step timestamps, never from the runner's clock.
+// Queue and pickup times come from GitHub's job timestamps. Stage times come from the runner's
+// millisecond clock (GitHub's step times are whole seconds), with the API as the fallback.
 //
 //   GITHUB_TOKEN=… GITHUB_REPOSITORY=relayrunner/benchmarks RUN_ID=… RUN_ATTEMPT=1 \
-//     node scripts/collect.mjs <machines dir> <out dir>
+//     node scripts/collect.mjs <records dir> <out dir>
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// The workflow's timed steps, by name.
-export const STAGES = { install: "Install", typecheck: "Typecheck", test: "Test" };
-// Matrix jobs are named `bench <provider>/<arch>/<repeat>`.
-const JOB_NAME = /^bench (\w[\w-]*)\/(x64|arm)\/(\d+)$/;
+// The workflow's timed steps, by name. Each step also writes its own millisecond time to the job's
+// stages.txt; the step's whole-second times from the API are the fallback when that's missing.
+// `restore` only runs on warm jobs.
+export const STAGES = {
+  restore: "Restore cache",
+  install: "Install",
+  typecheck: "Typecheck",
+  test: "Test",
+  build: "Build",
+};
+const REQUIRED = ["install", "typecheck", "test", "build"];
+// Matrix jobs are named `bench <provider>/<arch>-<vcpus>/<cold|warm>/<repeat>`.
+const JOB_NAME = /^bench (\w[\w-]*)\/(x64|arm)-(\d+)\/(cold|warm)\/(\d+)$/;
 
 const seconds = (from, to) =>
   from && to ? Math.round((Date.parse(to) - Date.parse(from)) / 100) / 10 : null;
 
 /** One API job (GET /actions/runs/{id}/attempts/{n}/jobs) as a result row, or null if it isn't a bench job. */
-export function jobResult(job, machines = {}) {
+export function jobResult(job, records = {}) {
   const m = JOB_NAME.exec(job.name);
   if (!m) return null;
-  const [, provider, arch, repeat] = m;
+  const [, provider, arch, vcpus, cache, repeat] = m;
+  const id = `${provider}/${arch}-${vcpus}/${cache}/${repeat}`;
+  const record = records[id] ?? {};
   const stages = {};
   for (const [key, name] of Object.entries(STAGES)) {
+    if (key === "restore" && cache !== "warm") continue;
     const step = job.steps?.find((s) => s.name === name);
-    stages[key] =
-      step && step.conclusion === "success" ? seconds(step.started_at, step.completed_at) : null;
+    const ok = step && step.conclusion === "success";
+    const ms = record.stagesMs?.[key];
+    stages[key] = !ok ? null : typeof ms === "number" ? ms / 1000 : seconds(step.started_at, step.completed_at);
   }
-  const complete = Object.values(stages).every((s) => s !== null);
+  const needed = cache === "warm" ? ["restore", ...REQUIRED] : REQUIRED;
+  const complete = needed.every((k) => typeof stages[k] === "number");
   return {
     provider,
     arch,
+    vcpus: Number(vcpus),
+    cache,
     repeat: Number(repeat),
     label: job.labels?.[0] ?? null,
     conclusion: job.conclusion,
@@ -41,29 +58,50 @@ export function jobResult(job, machines = {}) {
     pickupS: seconds(job.created_at, job.started_at),
     jobS: seconds(job.started_at, job.completed_at),
     stages,
-    // Install + typecheck + test: the number the leaderboard ranks on. Null unless all three passed.
+    // Every stage added up (restore included on warm jobs, since that's what using the cache
+    // costs): the number the leaderboard ranks on. Null unless every stage passed.
     workloadS: complete
-      ? Math.round((stages.install + stages.typecheck + stages.test) * 10) / 10
+      ? Math.round(needed.reduce((sum, k) => sum + stages[k], 0) * 1000) / 1000
       : null,
-    machine: machines[`${provider}/${arch}/${repeat}`] ?? null,
+    // Where the stage times came from: the runner's millisecond clock, or GitHub's step seconds.
+    timing: record.stagesMs ? "ms" : "api",
+    machine: record.machine ?? null,
   };
 }
 
-/** The machine-*.json files the bench jobs uploaded, keyed by job id. */
-export function readMachines(dir) {
+/** `restore 1234` lines from a job's stages.txt, as { restore: 1234 }. */
+export function parseStages(text) {
   const out = {};
-  let files = [];
+  for (const line of text.split("\n")) {
+    const [key, ms] = line.trim().split(/\s+/);
+    if (key && /^\d+$/.test(ms ?? "")) out[key] = Number(ms);
+  }
+  return out;
+}
+
+/**
+ * What each bench job uploaded (one directory per job: machine.json and stages.txt), keyed by job id.
+ */
+export function readRecords(dir) {
+  const out = {};
+  let dirs = [];
   try {
-    files = readdirSync(dir, { recursive: true }).filter((f) => String(f).endsWith(".json"));
+    dirs = readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory());
   } catch {
     return out;
   }
-  for (const f of files) {
+  for (const d of dirs) {
     try {
-      const m = JSON.parse(readFileSync(join(dir, String(f)), "utf8"));
-      if (m.id) out[m.id] = m;
+      const machine = JSON.parse(readFileSync(join(dir, d.name, "machine.json"), "utf8"));
+      let stagesMs = null;
+      try {
+        stagesMs = parseStages(readFileSync(join(dir, d.name, "stages.txt"), "utf8"));
+      } catch {
+        // No stage finished.
+      }
+      if (machine.id) out[machine.id] = { machine, stagesMs };
     } catch {
-      // A half-written file from a job that died says nothing; skip it.
+      // A half-written record from a job that died says nothing; skip it.
     }
   }
   return out;
@@ -90,15 +128,15 @@ async function fetchJobs({ token, repo, runId, attempt }) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const [machinesDir = "machines", outDir = "out"] = process.argv.slice(2);
+  const [recordsDir = "records", outDir = "out"] = process.argv.slice(2);
   const env = process.env;
   const runId = env.RUN_ID;
   const attempt = env.RUN_ATTEMPT || "1";
   const jobs = await fetchJobs({ token: env.GITHUB_TOKEN, repo: env.GITHUB_REPOSITORY, runId, attempt });
-  const machines = readMachines(machinesDir);
-  const results = jobs.map((j) => jobResult(j, machines)).filter(Boolean);
+  const records = readRecords(recordsDir);
+  const results = jobs.map((j) => jobResult(j, records)).filter(Boolean);
   const record = {
-    schema: 1,
+    schema: 2,
     runId: Number(runId),
     runAttempt: Number(attempt),
     runUrl: `https://github.com/${env.GITHUB_REPOSITORY}/actions/runs/${runId}`,
@@ -106,10 +144,21 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     dispatchedAt:
       results.map((j) => j.queuedAt).filter(Boolean).sort()[0] ?? new Date().toISOString(),
     benchmarksSha: env.GITHUB_SHA ?? null,
-    workload: { repository: env.WORKLOAD_REPOSITORY, ref: env.WORKLOAD_REF, node: env.NODE_VERSION },
-    inputs: { providers: env.PROVIDERS ?? "", arch: env.ARCH ?? "", repeats: Number(env.REPEATS) },
+    workload: {
+      repository: env.WORKLOAD_REPOSITORY,
+      ref: env.WORKLOAD_REF,
+      node: env.NODE_VERSION,
+      pnpm: env.PNPM_VERSION,
+    },
+    inputs: {
+      providers: env.PROVIDERS ?? "",
+      arch: env.ARCH ?? "",
+      vcpus: env.VCPUS ?? "",
+      cache: env.CACHE ?? "",
+      repeats: Number(env.REPEATS),
+    },
     jobs: results.sort((a, b) =>
-      `${a.provider}/${a.arch}/${a.repeat}`.localeCompare(`${b.provider}/${b.arch}/${b.repeat}`),
+      [a.provider, a.arch, a.vcpus, a.cache, a.repeat].join("/").localeCompare([b.provider, b.arch, b.vcpus, b.cache, b.repeat].join("/")),
     ),
   };
   mkdirSync(outDir, { recursive: true });

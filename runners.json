@@ -1,11 +1,11 @@
 {
-  "$comment": "Runner labels per provider and architecture, all 2 vCPU. GitHub always runs as the baseline. Add a provider here, install its GitHub App on this repo, then dispatch with its key.",
+  "$comment": "Runner labels per provider, architecture and vCPU count. GitHub always runs as the baseline; in a public repo its standard runners have 4 vCPU and 16 GB. Add a provider here, install its GitHub App on this repo, then dispatch with its key.",
   "github": {
-    "x64": "ubuntu-24.04",
-    "arm": "ubuntu-24.04-arm"
+    "x64": { "4": "ubuntu-24.04" },
+    "arm": { "4": "ubuntu-24.04-arm" }
   },
   "blacksmith": {
-    "x64": "blacksmith-2vcpu-ubuntu-2404",
-    "arm": "blacksmith-2vcpu-ubuntu-2404-arm"
+    "x64": { "2": "blacksmith-2vcpu-ubuntu-2404", "4": "blacksmith-4vcpu-ubuntu-2404" },
+    "arm": { "2": "blacksmith-2vcpu-ubuntu-2404-arm", "4": "blacksmith-4vcpu-ubuntu-2404-arm" }
   }
 }

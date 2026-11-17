@@ -6,48 +6,38 @@ How fast GitHub Actions runner providers finish the same real-world job, measure
 
 ## The workload
 
-[Zustand](https://github.com/pmndrs/zustand)'s own CI steps, pinned to commit `9fed2eb`:
+[Zustand](https://github.com/pmndrs/zustand)'s own CI steps at commit `9fed2eb`, timed in milliseconds on the runner: **install, typecheck, test and build**, plus **restore cache** on warm runs. **Pickup**, from GitHub queueing the job to a runner starting it, comes from the jobs API. Full details in [METHODOLOGY.md](METHODOLOGY.md).
 
-| Stage | Command |
-|---|---|
-| Install | `pnpm install --frozen-lockfile` (pnpm 11.3.0, Node 24, cold, no cache) |
-| Typecheck | `pnpm run test:types` (`tsc --noEmit`) |
-| Test | `pnpm run test:spec` (`vitest run`) |
-
-The **workload time** is install + typecheck + test. **Pickup** is the time from GitHub queueing the job to a runner starting it. Every time comes from GitHub's job and step timestamps (the jobs API), never from the runner's own clock.
-
-## How runs are compared
-
-Runs happen on demand, so they can be days apart, and the network, package mirrors and GitHub's own load shift in between. To keep runs comparable, every dispatch also runs GitHub's standard runner (`ubuntu-24.04` / `ubuntu-24.04-arm`, 2 vCPU) as a baseline:
-
-1. Each job's workload time is divided by the median GitHub time from the same dispatch.
-2. Each provider's rank is the median of those ratios across all its runs.
-3. **vs fastest** is that ratio divided by the best one, so the top runner reads 1.00x.
-
-The real median times, the min to max range, the time per stage, and the CPU each job got are shown alongside. Failed jobs and jobs that never started stay in the counts.
+Every dispatch also runs GitHub's standard runner (4 vCPU in a public repo) as a baseline. Runners get a **score** from 0 to 100 based on their time relative to that baseline (GitHub is about 50) and their success rate, so runs from different days stay comparable.
 
 ## Running a benchmark
 
 Actions → **Benchmark** → Run workflow:
 
-- `providers`: keys from [`runners.json`](runners.json), comma separated, such as `blacksmith`. GitHub always runs too.
-- `arch`: `x64`, `arm` or `both`.
-- `repeats`: runs per runner, 1 to 10 (default 3).
+| Input | Meaning |
+|---|---|
+| `providers` | Keys from [`runners.json`](runners.json), comma separated, such as `blacksmith`. GitHub always runs too |
+| `arch` | `x64`, `arm` or `both` |
+| `vcpus` | Provider runner size: `4` (default, matches GitHub), `2` or `both` |
+| `cache` | `cold` (default), `warm` or `both`. Warm adds one priming job per runner |
+| `repeats` | Runs per runner and cache mode, 1 to 10 (default 3) |
+| `dry_run` | Run without saving results |
 
-Each job has a 15-minute timeout. When all jobs finish, the `collect` job writes the results to the `results` branch and adds this dispatch's table to the run summary.
+Each job has a 15-minute timeout. When everything finishes, the `collect` job writes the results to the `results` branch and puts this dispatch's table in the run summary.
 
 ## Adding a provider
 
 1. Install the provider's GitHub App on this repository.
-2. Add its 2 vCPU labels to [`runners.json`](runners.json).
-3. Dispatch with just that provider. Earlier results stay, and the new one is ranked against them through the GitHub baseline.
+2. Add its labels to [`runners.json`](runners.json), by architecture and vCPU count.
+3. Dispatch with just that provider. Earlier results stay, and the new one is scored against them through the GitHub baseline.
 
 ## Runners
 
 | Provider | x64 | arm |
 |---|---|---|
-| GitHub (baseline) | `ubuntu-24.04` | `ubuntu-24.04-arm` |
-| Blacksmith | `blacksmith-2vcpu-ubuntu-2404` | `blacksmith-2vcpu-ubuntu-2404-arm` |
+| GitHub (baseline, 4 vCPU) | `ubuntu-24.04` | `ubuntu-24.04-arm` |
+| Blacksmith 2 vCPU | `blacksmith-2vcpu-ubuntu-2404` | `blacksmith-2vcpu-ubuntu-2404-arm` |
+| Blacksmith 4 vCPU | `blacksmith-4vcpu-ubuntu-2404` | `blacksmith-4vcpu-ubuntu-2404-arm` |
 
 ## Development
 

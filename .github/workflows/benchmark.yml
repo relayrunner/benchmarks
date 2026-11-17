@@ -1,7 +1,7 @@
 name: Benchmark
 
 # Manual only, so every minute spent is one somebody chose to spend. GitHub's runner always runs
-# alongside as the baseline (free in a public repo).
+# alongside as the baseline (free in a public repo). See METHODOLOGY.md.
 on:
   workflow_dispatch:
     inputs:
@@ -14,17 +14,31 @@ on:
         type: choice
         options: [x64, arm, both]
         default: x64
+      vcpus:
+        description: Provider runner size. GitHub's public-repo runner is 4 vCPU and always runs.
+        type: choice
+        options: ["4", "2", both]
+        default: "4"
+      cache:
+        description: "cold: no cache. warm: one priming job fills each runner's cache, then the timed runs restore it."
+        type: choice
+        options: [cold, warm, both]
+        default: cold
       repeats:
-        description: Runs per runner (1 to 10), for a median
+        description: Runs per runner and cache mode (1 to 10), for a median
         type: number
         default: 3
+      dry_run:
+        description: Don't save results to the results branch
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 env:
-  # The workload: Zustand's own CI steps (install, typecheck, test), pinned so every run does the
-  # same work. Change these only together with a note in the README, since it resets comparisons.
+  # The workload: Zustand's own CI steps (install, typecheck, test, build), pinned so every run does
+  # the same work. Changing any of these means a new results schema (see METHODOLOGY.md).
   WORKLOAD_REPOSITORY: pmndrs/zustand
   WORKLOAD_REF: 9fed2eb2f3af672da9f7bf694b996df3831fc207
   PNPM_VERSION: 11.3.0
@@ -34,7 +48,9 @@ jobs:
   plan:
     runs-on: ubuntu-24.04
     outputs:
-      matrix: ${{ steps.plan.outputs.matrix }}
+      bench: ${{ steps.plan.outputs.bench }}
+      prime: ${{ steps.plan.outputs.prime }}
+      has_prime: ${{ steps.plan.outputs.has_prime }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -43,18 +59,52 @@ jobs:
         env:
           PROVIDERS: ${{ inputs.providers }}
           ARCH: ${{ inputs.arch }}
+          VCPUS: ${{ inputs.vcpus }}
+          CACHE: ${{ inputs.cache }}
           REPEATS: ${{ inputs.repeats }}
         run: node scripts/plan.mjs
 
-  bench:
+  # Warm runs only: install once on each runner and save the pnpm store under a key unique to this
+  # run, so the timed jobs restore exactly this cache and nothing older.
+  prime:
     needs: plan
+    if: needs.plan.outputs.has_prime == 'true'
+    name: prime ${{ matrix.id }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.prime) }}
+    steps:
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ env.WORKLOAD_REPOSITORY }}
+          ref: ${{ env.WORKLOAD_REF }}
+          persist-credentials: false
+      - name: Setup pnpm
+        run: |
+          npm install --global pnpm@${{ env.PNPM_VERSION }}
+          echo "PNPM_STORE=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache/save@v4
+        with:
+          path: ${{ env.PNPM_STORE }}
+          key: bench-pnpm-${{ matrix.cacheKey }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+  bench:
+    needs: [plan, prime]
+    # Runs after priming, or straight away when there's nothing to prime.
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
     name: bench ${{ matrix.id }}
     runs-on: ${{ matrix.label }}
     # A hung or never-started runner can't burn more than this.
     timeout-minutes: 15
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.bench) }}
     steps:
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
@@ -63,7 +113,9 @@ jobs:
         env:
           JOB_ID: ${{ matrix.id }}
         run: |
-          mkdir -p "$RUNNER_TEMP/machine"
+          JOB_DIR="$RUNNER_TEMP/job"
+          mkdir -p "$JOB_DIR"
+          echo "JOB_DIR=$JOB_DIR" >> "$GITHUB_ENV"
           node -e '
             const fs = require("node:fs"), os = require("node:os");
             const osRelease = (() => { try { return /PRETTY_NAME="?([^"\n]*)/.exec(fs.readFileSync("/etc/os-release", "utf8"))[1]; } catch { return null; } })();
@@ -77,7 +129,7 @@ jobs:
               runnerName: process.env.RUNNER_NAME ?? null,
             };
             console.log(info);
-            fs.writeFileSync(process.env.RUNNER_TEMP + "/machine/" + process.env.JOB_ID.replaceAll("/", "-") + ".json", JSON.stringify(info));
+            fs.writeFileSync(process.env.JOB_DIR + "/machine.json", JSON.stringify(info));
           '
       - name: Checkout workload
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -86,26 +138,55 @@ jobs:
           ref: ${{ env.WORKLOAD_REF }}
           persist-credentials: false
       - name: Setup pnpm
-        run: npm install --global pnpm@${{ env.PNPM_VERSION }}
-      # The three timed steps. Their names are what scripts/collect.mjs reads; no caches anywhere,
-      # so every run starts cold.
+        run: |
+          npm install --global pnpm@${{ env.PNPM_VERSION }}
+          echo "PNPM_STORE=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      # The timed stages. Each one writes its own time in milliseconds to stages.txt (only when it
+      # succeeds); their step names are what scripts/collect.mjs reads. Cold jobs use no cache.
+      - name: Start restore timer
+        if: matrix.cache == 'warm'
+        run: echo "RESTORE_START=$(date +%s%3N)" >> "$GITHUB_ENV"
+      - name: Restore cache
+        if: matrix.cache == 'warm'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.PNPM_STORE }}
+          key: bench-pnpm-${{ matrix.cacheKey }}-${{ github.run_id }}-${{ github.run_attempt }}
+          fail-on-cache-miss: true
       - name: Install
-        run: pnpm install --frozen-lockfile
+        run: |
+          if [ -n "${RESTORE_START:-}" ]; then echo "restore $(( $(date +%s%3N) - RESTORE_START ))" >> "$JOB_DIR/stages.txt"; fi
+          s=$(date +%s%3N)
+          pnpm install --frozen-lockfile --prefer-offline
+          echo "install $(( $(date +%s%3N) - s ))" >> "$JOB_DIR/stages.txt"
       - name: Typecheck
-        run: pnpm run test:types
+        run: |
+          s=$(date +%s%3N)
+          pnpm run test:types
+          echo "typecheck $(( $(date +%s%3N) - s ))" >> "$JOB_DIR/stages.txt"
       - name: Test
-        run: pnpm run test:spec
-      - name: Upload machine info
+        run: |
+          s=$(date +%s%3N)
+          pnpm run test:spec
+          echo "test $(( $(date +%s%3N) - s ))" >> "$JOB_DIR/stages.txt"
+      - name: Build
+        run: |
+          s=$(date +%s%3N)
+          pnpm run build
+          echo "build $(( $(date +%s%3N) - s ))" >> "$JOB_DIR/stages.txt"
+
+      - name: Upload job record
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: machine-${{ matrix.provider }}-${{ matrix.arch }}-${{ matrix.repeat }}
-          path: ${{ runner.temp }}/machine/
+          name: job-${{ matrix.provider }}-${{ matrix.arch }}-${{ matrix.vcpus }}-${{ matrix.cache }}-${{ matrix.repeat }}
+          path: ${{ runner.temp }}/job/
           retention-days: 7
 
   collect:
     needs: [plan, bench]
-    if: always() && needs.plan.result == 'success'
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write # pushes to the results branch
@@ -115,11 +196,11 @@ jobs:
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+      # One directory per job: machine.json and stages.txt.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: machine-*
-          merge-multiple: true
-          path: ${{ runner.temp }}/machines
+          pattern: job-*
+          path: ${{ runner.temp }}/records
       - name: Collect timings
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -127,12 +208,15 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
           PROVIDERS: ${{ inputs.providers }}
           ARCH: ${{ inputs.arch }}
+          VCPUS: ${{ inputs.vcpus }}
+          CACHE: ${{ inputs.cache }}
           REPEATS: ${{ inputs.repeats }}
         run: |
           cp -r scripts "$RUNNER_TEMP/scripts"
-          node scripts/collect.mjs "$RUNNER_TEMP/machines" "$RUNNER_TEMP/out"
+          node scripts/collect.mjs "$RUNNER_TEMP/records" "$RUNNER_TEMP/out"
           node scripts/summarize.mjs "$RUNNER_TEMP/out" | sed 's/^# .*/# This dispatch/' >> "$GITHUB_STEP_SUMMARY"
       - name: Save to the results branch
+        if: ${{ !inputs.dry_run }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
