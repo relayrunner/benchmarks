@@ -113,7 +113,7 @@ jobs:
         env:
           JOB_ID: ${{ matrix.id }}
         run: |
-          JOB_DIR="$RUNNER_TEMP/job"
+          export JOB_DIR="$RUNNER_TEMP/job"
           mkdir -p "$JOB_DIR"
           echo "JOB_DIR=$JOB_DIR" >> "$GITHUB_ENV"
           node -e '

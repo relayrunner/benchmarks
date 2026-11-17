@@ -11,6 +11,9 @@ import { join } from "node:path";
 
 const BASELINE = "github";
 export const SCHEMA = 2;
+// Dispatches whose failures were the benchmark's own fault, not the runners'. Their files stay on
+// the results branch for the record but aren't scored. Each one is noted in METHODOLOGY.md.
+export const EXCLUDED_RUNS = new Set([44199045830]);
 
 // Score: 0 to 100, higher is better, like ComputeSDK's benchmarks. Each statistic of the ratio to
 // GitHub scores 100 × (1 − ratio / CEILING), so GitHub's own runner scores about 50 and a runner
@@ -153,7 +156,7 @@ export function readResults(dir) {
     .filter((f) => f.endsWith(".json"))
     .map((f) => JSON.parse(readFileSync(join(dir, f), "utf8")))
     // Older schemas ran a different workload, so they aren't ranked with these.
-    .filter((r) => r.schema === SCHEMA);
+    .filter((r) => r.schema === SCHEMA && !EXCLUDED_RUNS.has(r.runId));
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

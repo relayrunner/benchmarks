@@ -75,5 +75,6 @@ GitHub's runner scores about 50. A runner taking twice GitHub's time scores 0, a
 
 | Date | Change |
 |---|---|
+| 2026-11-17 | Run 44199045830 excluded: a setup bug in the workflow failed every job before the workload started |
 | 2026-11-17 | Schema 2: added build stage, millisecond stage timing, 4 vCPU runners, warm cache mode, score |
 | 2026-11-17 | Schema 1: first run (install, typecheck, test; 2 vCPU Blacksmith vs GitHub) |
