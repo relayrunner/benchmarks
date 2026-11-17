@@ -1,0 +1,221 @@
+{
+  "schema": 2,
+  "runId": 44199943192,
+  "runAttempt": 1,
+  "runUrl": "https://github.com/relayrunner/benchmarks/actions/runs/44199943192",
+  "dispatchedAt": "2026-11-17T23:30:30Z",
+  "benchmarksSha": "78af94a48d12a8b274e8a494a1ec3d765be44eab",
+  "workload": {
+    "repository": "pmndrs/zustand",
+    "ref": "9fed2eb2f3af672da9f7bf694b996df3831fc207",
+    "node": "24",
+    "pnpm": "11.3.0"
+  },
+  "inputs": {
+    "providers": "blacksmith",
+    "arch": "x64",
+    "vcpus": "4",
+    "cache": "cold",
+    "repeats": 3
+  },
+  "jobs": [
+    {
+      "provider": "blacksmith",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 1,
+      "label": "blacksmith-4vcpu-ubuntu-2404",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "blacksmith-4vcpu-ubuntu-2404-267mjk3nidykd6ao",
+      "queuedAt": "2026-11-17T23:30:30Z",
+      "startedAt": "2026-11-17T23:30:37Z",
+      "completedAt": "2026-11-17T23:31:03Z",
+      "pickupS": 7,
+      "jobS": 26,
+      "stages": {
+        "install": 4.189,
+        "typecheck": 2.354,
+        "test": 3.703,
+        "build": 5.897
+      },
+      "workloadS": 16.143,
+      "timing": "ms",
+      "machine": {
+        "id": "blacksmith/x64-4/cold/1",
+        "cpu": "AMD EPYC",
+        "vcpus": 4,
+        "memGb": 16.6,
+        "kernel": "6.6.141",
+        "os": "Ubuntu 24.04.4 LTS",
+        "runnerName": "blacksmith-4vcpu-ubuntu-2404-267mjk3nidykd6ao"
+      }
+    },
+    {
+      "provider": "blacksmith",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 2,
+      "label": "blacksmith-4vcpu-ubuntu-2404",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "blacksmith-4vcpu-ubuntu-2404-pmmey7i32sx5fump",
+      "queuedAt": "2026-11-17T23:30:30Z",
+      "startedAt": "2026-11-17T23:30:39Z",
+      "completedAt": "2026-11-17T23:31:16Z",
+      "pickupS": 9,
+      "jobS": 37,
+      "stages": {
+        "install": 5.124,
+        "typecheck": 3.419,
+        "test": 4.8,
+        "build": 9.609
+      },
+      "workloadS": 22.952,
+      "timing": "ms",
+      "machine": {
+        "id": "blacksmith/x64-4/cold/2",
+        "cpu": "AMD EPYC",
+        "vcpus": 4,
+        "memGb": 16.6,
+        "kernel": "6.6.141",
+        "os": "Ubuntu 24.04.4 LTS",
+        "runnerName": "blacksmith-4vcpu-ubuntu-2404-pmmey7i32sx5fump"
+      }
+    },
+    {
+      "provider": "blacksmith",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 3,
+      "label": "blacksmith-4vcpu-ubuntu-2404",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "blacksmith-4vcpu-ubuntu-2404-m4fe4r7edeeob5n2",
+      "queuedAt": "2026-11-17T23:30:30Z",
+      "startedAt": "2026-11-17T23:30:37Z",
+      "completedAt": "2026-11-17T23:31:06Z",
+      "pickupS": 7,
+      "jobS": 29,
+      "stages": {
+        "install": 4.528,
+        "typecheck": 2.731,
+        "test": 3.622,
+        "build": 6.625
+      },
+      "workloadS": 17.506,
+      "timing": "ms",
+      "machine": {
+        "id": "blacksmith/x64-4/cold/3",
+        "cpu": "Intel(R) Xeon(R) Processor",
+        "vcpus": 4,
+        "memGb": 16.6,
+        "kernel": "6.6.141",
+        "os": "Ubuntu 24.04.4 LTS",
+        "runnerName": "blacksmith-4vcpu-ubuntu-2404-m4fe4r7edeeob5n2"
+      }
+    },
+    {
+      "provider": "github",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 1,
+      "label": "ubuntu-24.04",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "GitHub Actions 1000001402",
+      "queuedAt": "2026-11-17T23:30:30Z",
+      "startedAt": "2026-11-17T23:30:32Z",
+      "completedAt": "2026-11-17T23:31:11Z",
+      "pickupS": 2,
+      "jobS": 39,
+      "stages": {
+        "install": 3.622,
+        "typecheck": 2.667,
+        "test": 4.528,
+        "build": 6.939
+      },
+      "workloadS": 17.756,
+      "timing": "ms",
+      "machine": {
+        "id": "github/x64-4/cold/1",
+        "cpu": "Intel(R) Xeon(R) 6975P-C",
+        "vcpus": 4,
+        "memGb": 16.5,
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 24.04.5 LTS",
+        "runnerName": "GitHub Actions 1000001402"
+      }
+    },
+    {
+      "provider": "github",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 2,
+      "label": "ubuntu-24.04",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "GitHub Actions 1000001401",
+      "queuedAt": "2026-11-17T23:30:30Z",
+      "startedAt": "2026-11-17T23:30:33Z",
+      "completedAt": "2026-11-17T23:31:10Z",
+      "pickupS": 3,
+      "jobS": 37,
+      "stages": {
+        "install": 3.867,
+        "typecheck": 2.615,
+        "test": 4.517,
+        "build": 6.998
+      },
+      "workloadS": 17.997,
+      "timing": "ms",
+      "machine": {
+        "id": "github/x64-4/cold/2",
+        "cpu": "Intel(R) Xeon(R) 6975P-C",
+        "vcpus": 4,
+        "memGb": 16.5,
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 24.04.5 LTS",
+        "runnerName": "GitHub Actions 1000001401"
+      }
+    },
+    {
+      "provider": "github",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 3,
+      "label": "ubuntu-24.04",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "GitHub Actions 1000001400",
+      "queuedAt": "2026-11-17T23:30:30Z",
+      "startedAt": "2026-11-17T23:30:32Z",
+      "completedAt": "2026-11-17T23:31:11Z",
+      "pickupS": 2,
+      "jobS": 39,
+      "stages": {
+        "install": 3.576,
+        "typecheck": 2.564,
+        "test": 4.422,
+        "build": 6.688
+      },
+      "workloadS": 17.25,
+      "timing": "ms",
+      "machine": {
+        "id": "github/x64-4/cold/3",
+        "cpu": "Intel(R) Xeon(R) 6975P-C",
+        "vcpus": 4,
+        "memGb": 16.5,
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 24.04.5 LTS",
+        "runnerName": "GitHub Actions 1000001400"
+      }
+    }
+  ]
+}
