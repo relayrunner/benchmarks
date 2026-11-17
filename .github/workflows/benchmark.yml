@@ -1,0 +1,157 @@
+name: Benchmark
+
+# Manual only, so every minute spent is one somebody chose to spend. GitHub's runner always runs
+# alongside as the baseline (free in a public repo).
+on:
+  workflow_dispatch:
+    inputs:
+      providers:
+        description: "Providers to run besides GitHub, comma separated (keys in runners.json), e.g. blacksmith"
+        type: string
+        default: blacksmith
+      arch:
+        description: Architecture
+        type: choice
+        options: [x64, arm, both]
+        default: x64
+      repeats:
+        description: Runs per runner (1 to 10), for a median
+        type: number
+        default: 3
+
+permissions:
+  contents: read
+
+env:
+  # The workload: Zustand's own CI steps (install, typecheck, test), pinned so every run does the
+  # same work. Change these only together with a note in the README, since it resets comparisons.
+  WORKLOAD_REPOSITORY: pmndrs/zustand
+  WORKLOAD_REF: 9fed2eb2f3af672da9f7bf694b996df3831fc207
+  PNPM_VERSION: 11.3.0
+  NODE_VERSION: "24"
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - id: plan
+        env:
+          PROVIDERS: ${{ inputs.providers }}
+          ARCH: ${{ inputs.arch }}
+          REPEATS: ${{ inputs.repeats }}
+        run: node scripts/plan.mjs
+
+  bench:
+    needs: plan
+    name: bench ${{ matrix.id }}
+    runs-on: ${{ matrix.label }}
+    # A hung or never-started runner can't burn more than this.
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Machine info
+        env:
+          JOB_ID: ${{ matrix.id }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/machine"
+          node -e '
+            const fs = require("node:fs"), os = require("node:os");
+            const osRelease = (() => { try { return /PRETTY_NAME="?([^"\n]*)/.exec(fs.readFileSync("/etc/os-release", "utf8"))[1]; } catch { return null; } })();
+            const info = {
+              id: process.env.JOB_ID,
+              cpu: os.cpus()[0]?.model?.trim() ?? null,
+              vcpus: os.availableParallelism(),
+              memGb: Math.round(os.totalmem() / 1e8) / 10,
+              kernel: os.release(),
+              os: osRelease,
+              runnerName: process.env.RUNNER_NAME ?? null,
+            };
+            console.log(info);
+            fs.writeFileSync(process.env.RUNNER_TEMP + "/machine/" + process.env.JOB_ID.replaceAll("/", "-") + ".json", JSON.stringify(info));
+          '
+      - name: Checkout workload
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ env.WORKLOAD_REPOSITORY }}
+          ref: ${{ env.WORKLOAD_REF }}
+          persist-credentials: false
+      - name: Setup pnpm
+        run: npm install --global pnpm@${{ env.PNPM_VERSION }}
+      # The three timed steps. Their names are what scripts/collect.mjs reads; no caches anywhere,
+      # so every run starts cold.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm run test:types
+      - name: Test
+        run: pnpm run test:spec
+      - name: Upload machine info
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: machine-${{ matrix.provider }}-${{ matrix.arch }}-${{ matrix.repeat }}
+          path: ${{ runner.temp }}/machine/
+          retention-days: 7
+
+  collect:
+    needs: [plan, bench]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # pushes to the results branch
+      actions: read # reads this run's job timings
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: machine-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/machines
+      - name: Collect timings
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          PROVIDERS: ${{ inputs.providers }}
+          ARCH: ${{ inputs.arch }}
+          REPEATS: ${{ inputs.repeats }}
+        run: |
+          cp -r scripts "$RUNNER_TEMP/scripts"
+          node scripts/collect.mjs "$RUNNER_TEMP/machines" "$RUNNER_TEMP/out"
+          node scripts/summarize.mjs "$RUNNER_TEMP/out" | sed 's/^# .*/# This dispatch/' >> "$GITHUB_STEP_SUMMARY"
+      - name: Save to the results branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin results >/dev/null; then
+            git fetch --depth 1 origin results
+            git checkout -B results FETCH_HEAD
+          else
+            git checkout --orphan results
+            git rm -rf --quiet .
+          fi
+          # Two dispatches finishing together race for the branch: start again from theirs and retry.
+          for attempt in 1 2 3; do
+            mkdir -p results
+            cp "$RUNNER_TEMP"/out/*.json results/
+            node "$RUNNER_TEMP/scripts/summarize.mjs" results > README.md
+            git add results README.md
+            git commit --quiet -m "Results for run ${{ github.run_id }}"
+            git push origin results && exit 0
+            git fetch --depth 1 origin results
+            git reset --quiet --hard FETCH_HEAD
+          done
+          exit 1

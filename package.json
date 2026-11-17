@@ -1,0 +1,9 @@
+{
+  "name": "relayrunner-benchmarks",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test scripts/scripts.test.mjs",
+    "summarize": "node scripts/summarize.mjs results"
+  }
+}

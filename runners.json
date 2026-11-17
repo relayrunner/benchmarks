@@ -1,0 +1,11 @@
+{
+  "$comment": "Runner labels per provider and architecture, all 2 vCPU. GitHub always runs as the baseline. Add a provider here, install its GitHub App on this repo, then dispatch with its key.",
+  "github": {
+    "x64": "ubuntu-24.04",
+    "arm": "ubuntu-24.04-arm"
+  },
+  "blacksmith": {
+    "x64": "blacksmith-2vcpu-ubuntu-2404",
+    "arm": "blacksmith-2vcpu-ubuntu-2404-arm"
+  }
+}
