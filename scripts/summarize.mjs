@@ -100,7 +100,9 @@ export function summarize(records) {
   }
   for (const list of Object.values(groups)) {
     list.sort((a, b) => b.score - a.score || (a.vsGitHub ?? Infinity) - (b.vsGitHub ?? Infinity));
-    const best = list.find((r) => r.vsGitHub !== null)?.vsGitHub;
+    // The fastest median, which isn't always the top score (the score also weighs p95 and failures).
+    const ratios = list.map((r) => r.vsGitHub).filter((x) => x !== null);
+    const best = ratios.length ? Math.min(...ratios) : null;
     for (const r of list) r.vsFastest = best && r.vsGitHub !== null ? r.vsGitHub / best : null;
   }
   // Warm rows: how their median compares to the same runner's cold median, the cache's benefit.

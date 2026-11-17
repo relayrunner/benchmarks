@@ -158,6 +158,17 @@ test("summarize: warm rows show their gain over cold", () => {
   assert.match(markdown(groups), /## Linux x64, 4 vCPU, warm cache/);
 });
 
+test("vs fastest uses the fastest median, not the top score", () => {
+  // Steady GitHub vs a runner with a faster median and one slow run.
+  const records = [
+    { runId: 1, dispatchedAt: "d", jobs: [job("github", 100), job("github", 100), job("github", 100), job("bs", 90), job("bs", 90), job("bs", 190)] },
+  ];
+  const [first, second] = summarize(records)["x64/4/cold"];
+  assert.equal(first.provider, "github");
+  assert.equal(second.vsFastest, 1);
+  assert.equal(first.vsFastest, 1 / 0.9);
+});
+
 test("stats", () => {
   assert.equal(median([3, 1, 2]), 2);
   assert.equal(median([4, 1, 2, 3]), 2.5);
