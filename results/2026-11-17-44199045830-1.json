@@ -1,0 +1,173 @@
+{
+  "schema": 2,
+  "runId": 44199045830,
+  "runAttempt": 1,
+  "runUrl": "https://github.com/relayrunner/benchmarks/actions/runs/44199045830",
+  "dispatchedAt": "2026-11-17T23:24:15Z",
+  "benchmarksSha": "e954be3651080b5a8133f1fa2073a52c3603f0d4",
+  "workload": {
+    "repository": "pmndrs/zustand",
+    "ref": "9fed2eb2f3af672da9f7bf694b996df3831fc207",
+    "node": "24",
+    "pnpm": "11.3.0"
+  },
+  "inputs": {
+    "providers": "blacksmith",
+    "arch": "x64",
+    "vcpus": "4",
+    "cache": "cold",
+    "repeats": 3
+  },
+  "jobs": [
+    {
+      "provider": "blacksmith",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 1,
+      "label": "blacksmith-4vcpu-ubuntu-2404",
+      "conclusion": "failure",
+      "started": true,
+      "runnerName": "blacksmith-4vcpu-ubuntu-2404-f6fou6i6vljbjf2a",
+      "queuedAt": "2026-11-17T23:24:15Z",
+      "startedAt": "2026-11-17T23:24:22Z",
+      "completedAt": "2026-11-17T23:24:29Z",
+      "pickupS": 7,
+      "jobS": 7,
+      "stages": {
+        "install": null,
+        "typecheck": null,
+        "test": null,
+        "build": null
+      },
+      "workloadS": null,
+      "timing": "api",
+      "machine": null
+    },
+    {
+      "provider": "blacksmith",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 2,
+      "label": "blacksmith-4vcpu-ubuntu-2404",
+      "conclusion": "failure",
+      "started": true,
+      "runnerName": "blacksmith-4vcpu-ubuntu-2404-pmmddubewytpx66o",
+      "queuedAt": "2026-11-17T23:24:15Z",
+      "startedAt": "2026-11-17T23:24:21Z",
+      "completedAt": "2026-11-17T23:24:29Z",
+      "pickupS": 6,
+      "jobS": 8,
+      "stages": {
+        "install": null,
+        "typecheck": null,
+        "test": null,
+        "build": null
+      },
+      "workloadS": null,
+      "timing": "api",
+      "machine": null
+    },
+    {
+      "provider": "blacksmith",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 3,
+      "label": "blacksmith-4vcpu-ubuntu-2404",
+      "conclusion": "failure",
+      "started": true,
+      "runnerName": "blacksmith-4vcpu-ubuntu-2404-zdpjllus4yug7i4v",
+      "queuedAt": "2026-11-17T23:24:15Z",
+      "startedAt": "2026-11-17T23:24:22Z",
+      "completedAt": "2026-11-17T23:24:29Z",
+      "pickupS": 7,
+      "jobS": 7,
+      "stages": {
+        "install": null,
+        "typecheck": null,
+        "test": null,
+        "build": null
+      },
+      "workloadS": null,
+      "timing": "api",
+      "machine": null
+    },
+    {
+      "provider": "github",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 1,
+      "label": "ubuntu-24.04",
+      "conclusion": "failure",
+      "started": true,
+      "runnerName": "GitHub Actions 1000001395",
+      "queuedAt": "2026-11-17T23:24:15Z",
+      "startedAt": "2026-11-17T23:24:17Z",
+      "completedAt": "2026-11-17T23:24:29Z",
+      "pickupS": 2,
+      "jobS": 12,
+      "stages": {
+        "install": null,
+        "typecheck": null,
+        "test": null,
+        "build": null
+      },
+      "workloadS": null,
+      "timing": "api",
+      "machine": null
+    },
+    {
+      "provider": "github",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 2,
+      "label": "ubuntu-24.04",
+      "conclusion": "failure",
+      "started": true,
+      "runnerName": "GitHub Actions 1000001394",
+      "queuedAt": "2026-11-17T23:24:15Z",
+      "startedAt": "2026-11-17T23:24:18Z",
+      "completedAt": "2026-11-17T23:24:34Z",
+      "pickupS": 3,
+      "jobS": 16,
+      "stages": {
+        "install": null,
+        "typecheck": null,
+        "test": null,
+        "build": null
+      },
+      "workloadS": null,
+      "timing": "api",
+      "machine": null
+    },
+    {
+      "provider": "github",
+      "arch": "x64",
+      "vcpus": 4,
+      "cache": "cold",
+      "repeat": 3,
+      "label": "ubuntu-24.04",
+      "conclusion": "failure",
+      "started": true,
+      "runnerName": "GitHub Actions 1000001393",
+      "queuedAt": "2026-11-17T23:24:15Z",
+      "startedAt": "2026-11-17T23:24:18Z",
+      "completedAt": "2026-11-17T23:24:29Z",
+      "pickupS": 3,
+      "jobS": 11,
+      "stages": {
+        "install": null,
+        "typecheck": null,
+        "test": null,
+        "build": null
+      },
+      "workloadS": null,
+      "timing": "api",
+      "machine": null
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 # Node workload leaderboard
 
-## Linux x64, 2 vCPU
+## Linux x64, 4 vCPU, cold cache
 
-| # | Runner | Median workload | vs fastest | vs GitHub | Range | Pickup | Install | Typecheck | Test | Runs (failed) | CPU |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | github `ubuntu-24.04` | 13s | 1.00x | 1.00x | 12s to 16s | 2s | 5s | 3s | 5s | 3 (0) | Intel(R) Xeon(R) 6975P-C |
-| 2 | blacksmith `blacksmith-2vcpu-ubuntu-2404` | 22s | 1.69x | 1.69x | 21s to 27s | 9s | 7s | 4s | 11s | 3 (0) | AMD EPYC |
+| # | Runner | Score | Median | vs fastest | vs GitHub | Range | Pickup | Install | Typecheck | Test | Build | Runs (failed) | CPU |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | blacksmith `blacksmith-4vcpu-ubuntu-2404` | 0 | – | – | – | – to – | 7.0s | – | – | – | – | 3 (3) | – |
+| 2 | github `ubuntu-24.04` | 0 | – | – | – | – to – | 3.0s | – | – | – | – | 3 (3) | – |
 
-Workload = install + typecheck + test, timed from GitHub's step timestamps. Ranked on the median ratio to GitHub's runner in the same dispatch. Pickup = queued to started.
+Score: 0 to 100, from the median and p95 ratio to GitHub's runner in the same dispatch, times the success rate (GitHub ≈ 50, twice GitHub's time = 0). Median = restore (warm only) + install + typecheck + test + build. Pickup = queued to started. GitHub's runner in a public repo has 4 vCPU, so 2 vCPU tables still compare against it. See METHODOLOGY.md.
