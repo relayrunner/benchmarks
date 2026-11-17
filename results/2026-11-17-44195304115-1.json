@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "runId": 44195304115,
+  "runAttempt": 1,
+  "runUrl": "https://github.com/relayrunner/benchmarks/actions/runs/44195304115",
+  "dispatchedAt": "2026-11-17T22:59:50Z",
+  "benchmarksSha": "d8ec5eb17e673c5fd9d53dd146491c59fa340fe8",
+  "workload": {
+    "repository": "pmndrs/zustand",
+    "ref": "9fed2eb2f3af672da9f7bf694b996df3831fc207",
+    "node": "24"
+  },
+  "inputs": {
+    "providers": "blacksmith",
+    "arch": "x64",
+    "repeats": 3
+  },
+  "jobs": [
+    {
+      "provider": "blacksmith",
+      "arch": "x64",
+      "repeat": 1,
+      "label": "blacksmith-2vcpu-ubuntu-2404",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "blacksmith-2vcpu-ubuntu-2404-csi74blqzrjrbncs",
+      "queuedAt": "2026-11-17T22:59:50Z",
+      "startedAt": "2026-11-17T22:59:59Z",
+      "completedAt": "2026-11-17T23:00:35Z",
+      "pickupS": 9,
+      "jobS": 36,
+      "stages": {
+        "install": 8,
+        "typecheck": 4,
+        "test": 10
+      },
+      "workloadS": 22,
+      "machine": {
+        "id": "blacksmith/x64/1",
+        "cpu": "AMD EPYC",
+        "vcpus": 2,
+        "memGb": 8.2,
+        "kernel": "6.6.141",
+        "os": "Ubuntu 24.04.4 LTS",
+        "runnerName": "blacksmith-2vcpu-ubuntu-2404-csi74blqzrjrbncs"
+      }
+    },
+    {
+      "provider": "blacksmith",
+      "arch": "x64",
+      "repeat": 2,
+      "label": "blacksmith-2vcpu-ubuntu-2404",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "blacksmith-2vcpu-ubuntu-2404-ouetvygcfjutbq5g",
+      "queuedAt": "2026-11-17T22:59:50Z",
+      "startedAt": "2026-11-17T23:00:00Z",
+      "completedAt": "2026-11-17T23:00:40Z",
+      "pickupS": 10,
+      "jobS": 40,
+      "stages": {
+        "install": 7,
+        "typecheck": 6,
+        "test": 14
+      },
+      "workloadS": 27,
+      "machine": {
+        "id": "blacksmith/x64/2",
+        "cpu": "AMD EPYC",
+        "vcpus": 2,
+        "memGb": 8.2,
+        "kernel": "6.6.141",
+        "os": "Ubuntu 24.04.4 LTS",
+        "runnerName": "blacksmith-2vcpu-ubuntu-2404-ouetvygcfjutbq5g"
+      }
+    },
+    {
+      "provider": "blacksmith",
+      "arch": "x64",
+      "repeat": 3,
+      "label": "blacksmith-2vcpu-ubuntu-2404",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "blacksmith-2vcpu-ubuntu-2404-cxo7kt6zw2n24jdk",
+      "queuedAt": "2026-11-17T22:59:50Z",
+      "startedAt": "2026-11-17T22:59:59Z",
+      "completedAt": "2026-11-17T23:00:34Z",
+      "pickupS": 9,
+      "jobS": 35,
+      "stages": {
+        "install": 6,
+        "typecheck": 4,
+        "test": 11
+      },
+      "workloadS": 21,
+      "machine": {
+        "id": "blacksmith/x64/3",
+        "cpu": "AMD EPYC",
+        "vcpus": 2,
+        "memGb": 8.2,
+        "kernel": "6.6.141",
+        "os": "Ubuntu 24.04.4 LTS",
+        "runnerName": "blacksmith-2vcpu-ubuntu-2404-cxo7kt6zw2n24jdk"
+      }
+    },
+    {
+      "provider": "github",
+      "arch": "x64",
+      "repeat": 1,
+      "label": "ubuntu-24.04",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "GitHub Actions 1000001376",
+      "queuedAt": "2026-11-17T22:59:50Z",
+      "startedAt": "2026-11-17T22:59:52Z",
+      "completedAt": "2026-11-17T23:00:21Z",
+      "pickupS": 2,
+      "jobS": 29,
+      "stages": {
+        "install": 5,
+        "typecheck": 2,
+        "test": 5
+      },
+      "workloadS": 12,
+      "machine": {
+        "id": "github/x64/1",
+        "cpu": "Intel(R) Xeon(R) 6975P-C",
+        "vcpus": 4,
+        "memGb": 16.5,
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 24.04.5 LTS",
+        "runnerName": "GitHub Actions 1000001376"
+      }
+    },
+    {
+      "provider": "github",
+      "arch": "x64",
+      "repeat": 2,
+      "label": "ubuntu-24.04",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "GitHub Actions 1000001377",
+      "queuedAt": "2026-11-17T22:59:50Z",
+      "startedAt": "2026-11-17T22:59:52Z",
+      "completedAt": "2026-11-17T23:00:13Z",
+      "pickupS": 2,
+      "jobS": 21,
+      "stages": {
+        "install": 5,
+        "typecheck": 3,
+        "test": 5
+      },
+      "workloadS": 13,
+      "machine": {
+        "id": "github/x64/2",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "vcpus": 4,
+        "memGb": 16.8,
+        "kernel": "7.0.0-1017-azure",
+        "os": "Ubuntu 24.04.5 LTS",
+        "runnerName": "GitHub Actions 1000001377"
+      }
+    },
+    {
+      "provider": "github",
+      "arch": "x64",
+      "repeat": 3,
+      "label": "ubuntu-24.04",
+      "conclusion": "success",
+      "started": true,
+      "runnerName": "GitHub Actions 1000001378",
+      "queuedAt": "2026-11-17T22:59:50Z",
+      "startedAt": "2026-11-17T22:59:52Z",
+      "completedAt": "2026-11-17T23:00:30Z",
+      "pickupS": 2,
+      "jobS": 38,
+      "stages": {
+        "install": 9,
+        "typecheck": 3,
+        "test": 4
+      },
+      "workloadS": 16,
+      "machine": {
+        "id": "github/x64/3",
+        "cpu": "Intel(R) Xeon(R) 6975P-C",
+        "vcpus": 4,
+        "memGb": 16.5,
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 24.04.5 LTS",
+        "runnerName": "GitHub Actions 1000001378"
+      }
+    }
+  ]
+}
